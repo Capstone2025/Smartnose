@@ -19,7 +19,7 @@ kit_settings = get_kit_settings()
 LOCAL_DB_PATH = '/home/tempread/capstone2025-main/project/local_database.db'
 
 #mode = kit_settings['nose_detection_mode']
-mode = "cat"
+mode = "ct"
 if mode == "cat":
     CONFIG_NAME = 'dirty_clean_20240129354.config' #cat, 354
 else:        
@@ -205,11 +205,17 @@ def main():
             #print(payload)
 
             if count >= 2:
-                clean = detect_cleaning_event(cal_gas_estimate_2, gas_prev, gas_base, clean)
+                if mode == "cat":
+                    clean = detect_cleaning_event(cal_gas_estimate_2, gas_prev, gas_base, clean)
+                    gas_prev = cal_gas_estimate_2
+                else:
+                    clean = detect_cleaning_event(cal_gas_estimate_1, gas_prev, gas_base, clean)
+                    gas_prev = cal_gas_estimate_1
+
+
                 personActivity = detect_person_event(payload.get("bVOCe"), bVOC_prev, bVOC_base)
                 #doorActivity = detect_door_event(payload.get("Pressure"), pressure_prev, pressure_base)
                 
-                gas_prev = cal_gas_estimate_2
                 bVOC_prev = payload.get("bVOCe")
                 #pressure_prev = payload.get("Pressure")
             else: 
@@ -347,6 +353,19 @@ def main():
 
 
                 else:
+                    sqliteConnection = sqlite3.connect('/ng-sensor/sensor_kit/sensors/bme/local_database.db')
+                    cursor = sqliteConnection.cursor()
+                    table = """ CREATE TABLE IF NOT EXISTS DETAILS (
+                                Time VARCHAR(255) NOT NULL,
+                                Temperature DECIMAL(3,1),
+                                Pressure DECIMAL(7,1),
+                                BVOC DECIMAL(7,1),
+                                IAQ DECIMAL(7,1),
+                                Gas_Estimation_1 DECIMAL(7,2),
+                                Gas_Estimation_2 DECIMAL(7,2),
+                                Cal_gas_estimate_1 DECIMAL(7,2),
+                                Cal_gas_estimate_2 DECIMAL(7,2)
+                                ); """ 
                     cursor.execute(table) #create new table
                 
                     cursor.execute('''INSERT INTO DETAILS (Time,Temperature,Pressure,BVOC,IAQ,Gas_Estimation_1,Gas_Estimation_2,Cal_gas_estimate_1,Cal_gas_estimate_2) VALUES (?,?,?,?,?,?,?,?,?)''',   
